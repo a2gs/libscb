@@ -16,18 +16,26 @@ RANLIB = ranlib
 CPPCHECK = cppcheck
 
 INCLUDEPATH = -I./
-LIBS = -lpthread -lrt
+LIBS = -lscb -lpthread -lrt
 LIBPATH = -L./
 
-all: clean exectag
+all: clean lscb exectag
 
-exectag:
+lscb:
+	@echo
+	@echo "=== libscb ================="
+	$(CC) -o scb.o -c scb.c -lpthread -lrt $(CFLAGS)
+	$(AR) rc libscb.a scb.o
+	$(RANLIB) libscb.a
+	-$(RM) scb.o
+
+exectag: lscb
 	@echo
 	@echo "=== Compiling =============="
-	$(CC) -o prod prod.c scb.c $(CFLAGS) $(INCLUDEPATH) $(LIBPATH) $(LIBS)
-	$(CC) -o cons cons.c scb.c $(CFLAGS) $(INCLUDEPATH) $(LIBPATH) $(LIBS)
+	$(CC) -o prod prod.c $(CFLAGS) $(INCLUDEPATH) $(LIBPATH) $(LIBS)
+	$(CC) -o cons cons.c $(CFLAGS) $(INCLUDEPATH) $(LIBPATH) $(LIBS)
 
 clean:
 	@echo
 	@echo "=== clean_data =============="
-	-$(RM) prod cons core
+	-$(RM) prod cons libscb.a *.o core
