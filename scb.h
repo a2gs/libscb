@@ -13,10 +13,7 @@
 #include <stdint.h>
 #include <semaphore.h>
 
-#define SCB_NAME_MAXSZ (100)
-
-#define SCB_OK         (0)
-#define SCB_ERR_CREATE (1)
+#define SCB_NAME_MAXSZ (30)
 
 typedef struct _scb_ctrl_t{
 	sem_t empty;
@@ -25,6 +22,7 @@ typedef struct _scb_ctrl_t{
 
 	uint16_t head;
 	uint16_t tail;
+	uint16_t qtd;
 
 	uint16_t dataTotal; /* Total of elements (capacity) */
 	size_t dataElementSz; /* Size of one element */
@@ -40,15 +38,23 @@ typedef struct _scb_iter_t{
 	uint16_t it;
 }scb_iter_t;
 
-int scb_create(char *name, uint16_t totalElements, size_t sizeElements, scb_t *ctx);
-int scb_attach(scb_t *ctx, char *name);
+typedef enum{
+	SCB_OK = 0,
+	SCB_SHMEM,
+	SCB_FTRUNC,
+	SCB_SEMPH,
+	SCB_MMAP
+}scb_err_t;
 
-int scb_get(scb_t *ctx);
-int scb_put(scb_t *ctx);
+scb_err_t scb_create(char *name, uint16_t totalElements, size_t sizeElements, scb_t *ctx, int *err);
+scb_err_t scb_attach(scb_t *ctx, char *name, int *err);
 
-int scb_iterator_create(scb_t *ctx, scb_iter_t *ctxIter);
-int scb_iterator_get(scb_t *ctx, scb_iter_t *ctxIter, void *data);
+scb_err_t scb_get(scb_t *ctx, void *element, void (*copyElement)(void *dst, void *src, size_t n));
+scb_err_t scb_put(scb_t *ctx, void *element, void (*copyElement)(void *dst, void *src, size_t n));
 
-int scb_destroy(scb_t *ctx);
+scb_err_t scb_iterator_create(scb_t *ctx, scb_iter_t *ctxIter);
+scb_err_t scb_iterator_get(scb_t *ctx, scb_iter_t *ctxIter, void *data);
+
+scb_err_t scb_destroy(scb_t *ctx, int *err);
 
 #endif

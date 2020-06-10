@@ -12,7 +12,7 @@
 #include <unistd.h>
 #include <stdint.h>
 #include <string.h>
-/*#include <errno.h>*/
+#include <errno.h>
 /*#include <signal.h>*/
 /*#include <time.h>*/
 #include <fcntl.h>
@@ -23,7 +23,7 @@
 
 #include "scb.h"
 
-int scb_create(char *name, uint16_t totalElements, size_t sizeElements, scb_t *ctx)
+scb_err_t scb_create(char *name, uint16_t totalElements, size_t sizeElements, scb_t *ctx, int *err)
 {
 	int fdshmem = 0;
 	size_t szshmem = 0;
@@ -33,55 +33,63 @@ int scb_create(char *name, uint16_t totalElements, size_t sizeElements, scb_t *c
 
 	szshmem = sizeof(scb_ctrl_t) + (totalElements * sizeElements);
 
-	fdshmem = shm_open(name, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+	fdshmem = shm_open(name, O_CREAT | O_EXCL | O_RDWR, S_IRUSR | S_IWUSR);
 	if(fdshmem == -1){
-		return(SCB_ERR_CREATE);
+		*err = errno;
+		return(SCB_SHMEM);
 	}
 
 	if(ftruncate(fdshmem, szshmem) == -1){
+		*err = errno;
 		shm_unlink(name);
-		return(SCB_ERR_CREATE);
+		return(SCB_FTRUNC);
 	}
 
 	/* MAP_HUGETLB */
 	shmem = mmap(NULL, szshmem, PROT_READ | PROT_WRITE, MAP_SHARED, fdshmem, 0);
 	if(shmem == MAP_FAILED){
+		*err = errno;
 		shm_unlink(name);
-		return(SCB_ERR_CREATE);
+		return(SCB_MMAP);
 	}
 
 	ctx = (scb_t *)shmem;
 
 	ctx->ctrl->head = 0;
 	ctx->ctrl->tail = 0;
+	ctx->ctrl->qtd  = 0;
 
 	ctx->ctrl->dataTotal     = totalElements;
 	ctx->ctrl->dataElementSz = sizeElements;
 
 	if(sem_init(&ctx->ctrl->empty, 1, 1) == -1){
+		*err = errno;
 		shm_unlink(name);
-		return(SCB_ERR_CREATE);
+		return(SCB_SEMPH);
 	}
 
 	if(sem_init(&ctx->ctrl->full, 1, 0) == -1){
+		*err = errno;
 		sem_destroy(&ctx->ctrl->empty);
 		shm_unlink(name);
-		return(SCB_ERR_CREATE);
+		return(SCB_SEMPH);
 	}
 
 	if(sem_init(&ctx->ctrl->buffCtrl, 1, 1) == -1){
+		*err = errno;
 		sem_destroy(&ctx->ctrl->empty);
 		sem_destroy(&ctx->ctrl->full);
 		shm_unlink(name);
-		return(SCB_ERR_CREATE);
+		return(SCB_SEMPH);
 	}
 
 	ctx->data = (void *)(shmem + sizeof(scb_ctrl_t));
 
+	*err = 0;
 	return(SCB_OK);
 }
 
-int scb_attach(scb_t *ctx, char *name)
+scb_err_t scb_attach(scb_t *ctx, char *name, int *err)
 {
 	int fdshmem = 0;
 	void *shmem = NULL;
@@ -90,27 +98,33 @@ int scb_attach(scb_t *ctx, char *name)
 
 	fdshmem = shm_open(name, O_RDWR, S_IRUSR | S_IWUSR);
 	if(fdshmem == -1){
-		return(SCB_ERR_CREATE);
+		*err = errno;
+		return(SCB_SHMEM);
 	}
 
 	shmem = mmap(NULL, sizeof(scb_t), PROT_READ | PROT_WRITE, MAP_SHARED, fdshmem, 0);
 	if(shmem == MAP_FAILED){
+		*err = errno;
 		shm_unlink(name);
-		return(SCB_ERR_CREATE);
+		return(SCB_SHMEM);
 	}
 
 	ctx = (scb_t *)shmem;
 	ctx->data = (void *)(shmem + sizeof(scb_ctrl_t));
 
+	*err = 0;
 	return(SCB_OK);
 }
 
-int scb_get(scb_t *ctx)
+scb_err_t scb_get(scb_t *ctx, void *element,  void (*copyElement)(void *dest, void *src, size_t n))
 {
 	sem_wait(&(ctx->ctrl->full));
 	sem_wait(&(ctx->ctrl->buffCtrl));
 
-	/* ... get an element from circ buffer ... */
+	copyElement(element, ctx->data + (ctx->ctrl->tail * ctx->ctrl->dataElementSz), ctx->ctrl->dataElementSz);
+
+	ctx->ctrl->tail = (ctx->ctrl->tail + 1) % ctx->ctrl->dataElementSz;
+	ctx->ctrl->qtd--;
 
 	sem_post(&(ctx->ctrl->buffCtrl));
 	sem_post(&(ctx->ctrl->empty));
@@ -118,12 +132,15 @@ int scb_get(scb_t *ctx)
 	return(SCB_OK);
 }
 
-int scb_put(scb_t *ctx)
+scb_err_t scb_put(scb_t *ctx, void *element, void (*copyElement)(void *dest, void *src, size_t n))
 {
 	sem_wait(&(ctx->ctrl->empty));
 	sem_wait(&(ctx->ctrl->buffCtrl));
 
-	/* ... put an element to circ buffer ... */
+	copyElement(ctx->data + (ctx->ctrl->head * ctx->ctrl->dataElementSz), element, ctx->ctrl->dataElementSz);
+
+	ctx->ctrl->head = (ctx->ctrl->head + 1) % ctx->ctrl->dataElementSz;
+	ctx->ctrl->qtd++;
 
 	sem_post(&(ctx->ctrl->buffCtrl));
 	sem_post(&(ctx->ctrl->full));
@@ -131,14 +148,14 @@ int scb_put(scb_t *ctx)
 	return(SCB_OK);
 }
 
-int scb_iterator_create(scb_t *ctx, scb_iter_t *ctxIter)
+scb_err_t scb_iterator_create(scb_t *ctx, scb_iter_t *ctxIter)
 {
 	ctxIter->it = ctx->ctrl->tail;
 
 	return(SCB_OK);
 }
 
-int scb_iterator_get(scb_t *ctx, scb_iter_t *ctxIter, void *data)
+scb_err_t scb_iterator_get(scb_t *ctx, scb_iter_t *ctxIter, void *data)
 {
 	if((ctx->ctrl->head < ctxIter->it) || (ctx->ctrl->tail > ctxIter->it)){
 		ctxIter-> it = ctx->ctrl->tail;
@@ -147,12 +164,21 @@ int scb_iterator_get(scb_t *ctx, scb_iter_t *ctxIter, void *data)
 	return(SCB_OK);
 }
 
-int scb_destroy(scb_t *ctx)
+scb_err_t scb_destroy(scb_t *ctx, int *err)
 {
-	sem_destroy(&(ctx->ctrl->buffCtrl));
-	sem_destroy(&(ctx->ctrl->empty));
-	sem_destroy(&(ctx->ctrl->full));
-	shm_unlink(ctx->name);
+	int ret = 0;
+
+	ret = sem_destroy(&(ctx->ctrl->buffCtrl)) | sem_destroy(&(ctx->ctrl->empty)) | sem_destroy(&(ctx->ctrl->full));
+
+	if(ret != 0){
+		*err = errno;
+		return(SCB_SEMPH);
+	}
+
+	if(shm_unlink(ctx->name) == -1){
+		*err = errno;
+		return(SCB_SHMEM);
+	}
 
 	return(SCB_OK);
 }

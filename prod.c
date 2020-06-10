@@ -16,6 +16,7 @@
 
 int main(int argc, char *argv[])
 {
+	int ret = 0;
 	unsigned int sec = 0;
 	scb_t ctx;
 
@@ -26,16 +27,16 @@ int main(int argc, char *argv[])
 
 	sec = atoi(argv[2]);
 
-	if(scb_create(argv[1], 100, sizeof(element_t), &ctx) != SCB_OK){
+	if(scb_create(argv[1], 100, sizeof(element_t), &ctx, &ret) != SCB_OK){
 		return(1);
 	}
 
 	while(1){
-		scb_put(&ctx);
+/*		scb_put(&ctx); */
 		sleep(sec);
 	}
 
-	scb_destroy(&ctx);
+	scb_destroy(&ctx, &ret);
 
 	return(0);
 }
