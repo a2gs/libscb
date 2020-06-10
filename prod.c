@@ -7,16 +7,35 @@
  * MIT License
  */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
 #include "scb.h"
 #include "prodcons.h"
 
 int main(int argc, char *argv[])
 {
-	char name[] = "./sem1";
+	unsigned int sec = 0;
 	scb_t ctx;
 
-	if(scb_create(name, 100, sizeof(element_t), &ctx) != SCB_OK){
+	if(argc != 3){
+		printf("Usage: %s [SEMAPHORE_NAME] [SECONDS]", argv[0]);
+		return(1);
 	}
+
+	sec = atoi(argv[2]);
+
+	if(scb_create(argv[1], 100, sizeof(element_t), &ctx) != SCB_OK){
+		return(1);
+	}
+
+	while(1){
+		scb_put(&ctx);
+		sleep(sec);
+	}
+
+	scb_destroy(&ctx);
 
 	return(0);
 }
