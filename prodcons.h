@@ -13,7 +13,7 @@
 typedef struct _element_t{
 	int a;
 	float b;
-	char c[30];
+	char c[10];
 }element_t;
 
 #endif

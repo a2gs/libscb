@@ -116,7 +116,7 @@ scb_err_t scb_attach(scb_t *ctx, char *name, int *err)
 	return(SCB_OK);
 }
 
-scb_err_t scb_get(scb_t *ctx, void *element,  void (*copyElement)(void *dest, void *src, size_t n))
+scb_err_t scb_get(scb_t *ctx, void *element,  void *(*copyElement)(void *dest, const void *src, size_t n))
 {
 	sem_wait(&(ctx->ctrl->full));
 	sem_wait(&(ctx->ctrl->buffCtrl));
@@ -132,7 +132,7 @@ scb_err_t scb_get(scb_t *ctx, void *element,  void (*copyElement)(void *dest, vo
 	return(SCB_OK);
 }
 
-scb_err_t scb_put(scb_t *ctx, void *element, void (*copyElement)(void *dest, void *src, size_t n))
+scb_err_t scb_put(scb_t *ctx, void *element, void *(*copyElement)(void *dest, const void *src, size_t n))
 {
 	sem_wait(&(ctx->ctrl->empty));
 	sem_wait(&(ctx->ctrl->buffCtrl));
@@ -181,4 +181,29 @@ scb_err_t scb_destroy(scb_t *ctx, int *err)
 	}
 
 	return(SCB_OK);
+}
+
+void scb_strerror(scb_err_t err, int ret, char *msg)
+{
+	char *errat = NULL;
+
+	switch(err){
+		case SCB_SHMEM:
+			errat = "Shared Memory";
+			break;
+		case SCB_FTRUNC:
+			errat = "FTruncate";
+			break;
+		case SCB_SEMPH:
+			errat = "Semaphore";
+			break;
+		case SCB_MMAP:
+			errat = "mmap";
+			break;
+		default:
+			errat = "Success";
+			break;
+	}
+
+	snprintf("Error at [%s]: [%s]\n", SCB_ERRORMSG_MAXSZ, errat, strerror(ret));
 }
