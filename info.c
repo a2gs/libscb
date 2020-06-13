@@ -31,10 +31,10 @@ int main(int argc, char *argv[])
 	}
 
 	printf("Circular buffer name: [%s]\n", argv[1]);
-	printf("Head................: [%d]\n", inf.head);
-	printf("Tail................: [%d]\n", inf.tail);
-	printf("Qtd.................: [%d]\n", inf.qtd);
-	printf("Total capacity......: [%d]\n", inf.dataTotal);
+	printf("Head................: [%du]\n", inf.head);
+	printf("Tail................: [%du]\n", inf.tail);
+	printf("Qtd.................: [%du]\n", inf.qtd);
+	printf("Total capacity......: [%du]\n", inf.dataTotal);
 	printf("Element size........: [%lu]\n", inf.dataElementSz);
 
 	return(0);
