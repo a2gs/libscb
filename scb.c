@@ -51,6 +51,8 @@ scb_err_t scb_create(char *name, uint16_t totalElements, size_t sizeElements, sc
 		return(SCB_MMAP);
 	}
 
+	close(fdshmem);
+
 	*ctx = (scb_t *)shmem;
 
 	strncpy((*ctx)->name, name, SCB_NAME_MAXSZ);
@@ -75,7 +77,7 @@ scb_err_t scb_create(char *name, uint16_t totalElements, size_t sizeElements, sc
 		return(SCB_SEMPH);
 	}
 
-	if(sem_init(&((*ctx)->ctrl.buffCtrl), 1, 1) == -1){
+	if(sem_init(&((*ctx)->ctrl.buffCtrl), 1, totalElements) == -1){
 		*err = errno;
 		sem_destroy(&(*ctx)->ctrl.empty);
 		sem_destroy(&(*ctx)->ctrl.full);
@@ -92,9 +94,12 @@ scb_err_t scb_create(char *name, uint16_t totalElements, size_t sizeElements, sc
 scb_err_t scb_attach(scb_t **ctx, char *name, int *err)
 {
 	int fdshmem = 0;
+	size_t szshmem = 0;
 	void *shmem = NULL;
 
 	/* strncpy(ctx->name, name, SCB_NAME_MAXSZ); */
+
+	szshmem = sizeof(scb_t) /* TODO: + (totalElements * sizeElements)*/;
 
 	fdshmem = shm_open(name, O_RDWR, S_IRUSR | S_IWUSR);
 	if(fdshmem == -1){
@@ -102,12 +107,14 @@ scb_err_t scb_attach(scb_t **ctx, char *name, int *err)
 		return(SCB_SHMEM);
 	}
 
-	shmem = mmap(NULL, sizeof(scb_t), PROT_READ | PROT_WRITE, MAP_SHARED, fdshmem, 0);
+	shmem = mmap(NULL, szshmem, PROT_READ | PROT_WRITE, MAP_SHARED, fdshmem, 0);
 	if(shmem == MAP_FAILED){
 		*err = errno;
 		shm_unlink(name);
 		return(SCB_SHMEM);
 	}
+
+	close(fdshmem);
 
 	(*ctx) = (scb_t *)shmem;
 	/* (*ctx)->data = (void *)(shmem + sizeof(scb_t)); */
@@ -132,7 +139,7 @@ scb_err_t scb_get_block(scb_t *ctx, void *element,  void *(*copyElement)(void *d
 	return(SCB_OK);
 }
 
-scb_err_t scb_put(scb_t *ctx, void *element, void *(*copyElement)(void *dest, const void *src))
+scb_err_t scb_put_block(scb_t *ctx, void *element, void *(*copyElement)(void *dest, const void *src))
 {
 	sem_wait(&(ctx->ctrl.empty));
 	sem_wait(&(ctx->ctrl.buffCtrl));
@@ -206,4 +213,29 @@ void scb_strerror(scb_err_t err, int ret, char *msg)
 	}
 
 	snprintf(msg, SCB_ERRORMSG_MAXSZ, "Error at [%s]: [%s]\n", errat, strerror(ret));
+}
+
+scb_err_t scb_getInfo(char *name, scb_ctrl_t *inf, int *err)
+{
+	int fdshmem = 0;
+	void *shmem = NULL;
+
+	fdshmem = shm_open(name, O_RDONLY, S_IRUSR | S_IWUSR);
+	if(fdshmem == -1){
+		*err = errno;
+		return(SCB_SHMEM);
+	}
+
+	shmem = mmap(NULL, sizeof(scb_t), PROT_READ, MAP_SHARED, fdshmem, 0);
+	if(shmem == MAP_FAILED){
+		*err = errno;
+		shm_unlink(name);
+		return(SCB_SHMEM);
+	}
+
+	memcpy(inf, shmem, sizeof(scb_t));
+
+	close(fdshmem);
+
+	return(SCB_OK);
 }

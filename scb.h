@@ -51,7 +51,12 @@ scb_err_t scb_create(char *name, uint16_t totalElements, size_t sizeElements, sc
 scb_err_t scb_attach(scb_t **ctx, char *name, int *err);
 
 scb_err_t scb_get_block(scb_t *ctx, void *element, void *(*copyElement)(void *dst, const void *src));
-scb_err_t scb_put(scb_t *ctx, void *element, void *(*copyElement)(void *dst, const void *src));
+/* scb_err_t scb_get_nonblock(scb_t *ctx, void *element, void *(*copyElement)(void *dst, const void *src)); */
+
+scb_err_t scb_put_block(scb_t *ctx, void *element, void *(*copyElement)(void *dst, const void *src));
+/* scb_err_t scb_put(scb_t *ctx, void *element, void *(*copyElement)(void *dst, const void *src)); */
+
+scb_err_t scb_getInfo(char *name, scb_ctrl_t *inf, int *err);
 
 scb_err_t scb_iterator_create(scb_t *ctx, scb_iter_t *ctxIter);
 scb_err_t scb_iterator_get(scb_t *ctx, scb_iter_t *ctxIter, void *data);

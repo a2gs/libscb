@@ -34,6 +34,7 @@ exectag: lscb
 	@echo "=== Compiling =============="
 	$(CC) -o prod prod.c $(CFLAGS) $(INCLUDEPATH) $(LIBPATH) $(LIBS)
 	$(CC) -o cons cons.c $(CFLAGS) $(INCLUDEPATH) $(LIBPATH) $(LIBS)
+	$(CC) -o info info.c $(CFLAGS) $(INCLUDEPATH) $(LIBPATH) $(LIBS)
 
 clean:
 	@echo

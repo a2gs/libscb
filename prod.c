@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
 
 	sec = atoi(argv[2]);
 
-printf("11111\n");
+	printf("Creating scb: [%s]\n", argv[1]);
 	scberr = scb_create(argv[1], 100, sizeof(element_t), &ctx, &ret);
 	if(scberr != SCB_OK){
 		scb_strerror(scberr, ret, scberrormsg);
@@ -56,12 +56,11 @@ printf("11111\n");
 		return(1);
 	}
 
-printf("11122\n");
 	while(1){
 		prodElement(&e);
 
-printf("22222\n");
-		scberr = scb_put(ctx, &e, copyElement);
+		printf("Insering: [%d - %f - %s] into [%s]. Sleep(%d)\n", e.a, e.b, e.c, argv[1], sec);
+		scberr = scb_put_block(ctx, &e, copyElement);
 		if(scberr != SCB_OK){
 			scb_strerror(scberr, ret, scberrormsg);
 			printf("%s", scberrormsg);
@@ -71,7 +70,7 @@ printf("22222\n");
 		sleep(sec);
 	}
 
-printf("33333\n");
+	printf("Destroying [%s]\n", argv[1]);
 	scberr = scb_destroy(ctx, &ret);
 	if(scberr != SCB_OK){
 		scb_strerror(scberr, ret, scberrormsg);
