@@ -116,13 +116,12 @@ scb_err_t scb_attach(scb_t *ctx, char *name, int *err)
 	return(SCB_OK);
 }
 
-/* copyElement(..., ..., size_t n) n is not used, instead ctx->ctrl.dataElementSz */
-scb_err_t scb_get(scb_t *ctx, void *element,  void *(*copyElement)(void *dest, const void *src, size_t n))
+scb_err_t scb_get(scb_t *ctx, void *element,  void *(*copyElement)(void *dest, const void *src))
 {
 	sem_wait(&(ctx->ctrl.full));
 	sem_wait(&(ctx->ctrl.buffCtrl));
 
-	copyElement(element, ctx->data + (ctx->ctrl.tail * ctx->ctrl.dataElementSz), ctx->ctrl.dataElementSz);
+	copyElement(element, ctx->data + (ctx->ctrl.tail * ctx->ctrl.dataElementSz));
 
 	ctx->ctrl.tail = (ctx->ctrl.tail + 1) % ctx->ctrl.dataElementSz;
 	ctx->ctrl.qtd--;
@@ -133,13 +132,12 @@ scb_err_t scb_get(scb_t *ctx, void *element,  void *(*copyElement)(void *dest, c
 	return(SCB_OK);
 }
 
-/* copyElement(..., ..., size_t n) n is not used, instead ctx->ctrl.dataElementSz */
-scb_err_t scb_put(scb_t *ctx, void *element, void *(*copyElement)(void *dest, const void *src, size_t n))
+scb_err_t scb_put(scb_t *ctx, void *element, void *(*copyElement)(void *dest, const void *src))
 {
 	sem_wait(&(ctx->ctrl.empty));
 	sem_wait(&(ctx->ctrl.buffCtrl));
 
-	copyElement(ctx->data + (ctx->ctrl.head * ctx->ctrl.dataElementSz), element, ctx->ctrl.dataElementSz);
+	copyElement(ctx->data + (ctx->ctrl.head * ctx->ctrl.dataElementSz), element);
 
 	ctx->ctrl.head = (ctx->ctrl.head + 1) % ctx->ctrl.dataElementSz;
 	ctx->ctrl.qtd++;

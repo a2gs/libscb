@@ -15,6 +15,11 @@
 #include "scb.h"
 #include "prodcons.h"
 
+void * copyElement(void *dst, const void *src)
+{
+	return(memcpy(dst, src, sizeof(element_t)));
+}
+
 void prodElement(element_t *e)
 {
 	static unsigned int i = 0;
@@ -61,7 +66,8 @@ printf("11122\n");
 		prodElement(&e);
 
 printf("22222\n");
-		scberr = scb_put(&ctx, &e, memcpy);
+		/* scberr = scb_put(&ctx, &e, memcpy); */
+		scberr = scb_put(&ctx, &e, copyElement);
 		if(scberr != SCB_OK){
 			scb_strerror(scberr, ret, scberrormsg);
 			printf("%s", scberrormsg);
