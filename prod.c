@@ -42,12 +42,13 @@ int main(int argc, char *argv[])
 	element_t e;
 
 	if(argc != 3){
-		printf("Usage: %s [SEMAPHORE_NAME] [SECONDS]", argv[0]);
+		printf("Usage: %s [SEMAPHORE_NAME] [SECONDS]\n", argv[0]);
 		return(1);
 	}
 
 	sec = atoi(argv[2]);
 
+printf("11111\n");
 	scberr = scb_create(argv[1], 100, sizeof(element_t), &ctx, &ret);
 	if(scberr != SCB_OK){
 		scb_strerror(scberr, ret, scberrormsg);
@@ -55,9 +56,11 @@ int main(int argc, char *argv[])
 		return(1);
 	}
 
+printf("11122\n");
 	while(1){
 		prodElement(&e);
 
+printf("22222\n");
 		scberr = scb_put(&ctx, &e, memcpy);
 		if(scberr != SCB_OK){
 			scb_strerror(scberr, ret, scberrormsg);
@@ -68,6 +71,7 @@ int main(int argc, char *argv[])
 		sleep(sec);
 	}
 
+printf("33333\n");
 	scberr = scb_destroy(&ctx, &ret);
 	if(scberr != SCB_OK){
 		scb_strerror(scberr, ret, scberrormsg);

@@ -31,7 +31,7 @@ typedef struct _scb_ctrl_t{
 
 typedef struct _scb_t{
 	char name[SCB_NAME_MAXSZ];
-	scb_ctrl_t *ctrl;
+	scb_ctrl_t ctrl;
 	void *data;
 }scb_t;
 

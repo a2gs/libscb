@@ -31,7 +31,7 @@ scb_err_t scb_create(char *name, uint16_t totalElements, size_t sizeElements, sc
 
 	strncpy(ctx->name, name, SCB_NAME_MAXSZ);
 
-	szshmem = sizeof(scb_ctrl_t) + (totalElements * sizeElements);
+	szshmem = sizeof(scb_t) + (totalElements * sizeElements);
 
 	fdshmem = shm_open(name, O_CREAT | O_EXCL | O_RDWR, S_IRUSR | S_IWUSR);
 	if(fdshmem == -1){
@@ -55,35 +55,35 @@ scb_err_t scb_create(char *name, uint16_t totalElements, size_t sizeElements, sc
 
 	ctx = (scb_t *)shmem;
 
-	ctx->ctrl->head = 0;
-	ctx->ctrl->tail = 0;
-	ctx->ctrl->qtd  = 0;
+	ctx->ctrl.head = 0;
+	ctx->ctrl.tail = 0;
+	ctx->ctrl.qtd  = 0;
 
-	ctx->ctrl->dataTotal     = totalElements;
-	ctx->ctrl->dataElementSz = sizeElements;
+	ctx->ctrl.dataTotal     = totalElements;
+	ctx->ctrl.dataElementSz = sizeElements;
 
-	if(sem_init(&ctx->ctrl->empty, 1, 1) == -1){
+	if(sem_init(&(ctx->ctrl.empty), 1, 1) == -1){
 		*err = errno;
 		shm_unlink(name);
 		return(SCB_SEMPH);
 	}
 
-	if(sem_init(&ctx->ctrl->full, 1, 0) == -1){
+	if(sem_init(&(ctx->ctrl.full), 1, 0) == -1){
 		*err = errno;
-		sem_destroy(&ctx->ctrl->empty);
+		sem_destroy(&ctx->ctrl.empty);
 		shm_unlink(name);
 		return(SCB_SEMPH);
 	}
 
-	if(sem_init(&ctx->ctrl->buffCtrl, 1, 1) == -1){
+	if(sem_init(&(ctx->ctrl.buffCtrl), 1, 1) == -1){
 		*err = errno;
-		sem_destroy(&ctx->ctrl->empty);
-		sem_destroy(&ctx->ctrl->full);
+		sem_destroy(&ctx->ctrl.empty);
+		sem_destroy(&ctx->ctrl.full);
 		shm_unlink(name);
 		return(SCB_SEMPH);
 	}
 
-	ctx->data = (void *)(shmem + sizeof(scb_ctrl_t));
+	ctx->data = (void *)(shmem + sizeof(scb_t));
 
 	*err = 0;
 	return(SCB_OK);
@@ -110,55 +110,57 @@ scb_err_t scb_attach(scb_t *ctx, char *name, int *err)
 	}
 
 	ctx = (scb_t *)shmem;
-	ctx->data = (void *)(shmem + sizeof(scb_ctrl_t));
+	ctx->data = (void *)(shmem + sizeof(scb_t));
 
 	*err = 0;
 	return(SCB_OK);
 }
 
+/* copyElement(..., ..., size_t n) n is not used, instead ctx->ctrl.dataElementSz */
 scb_err_t scb_get(scb_t *ctx, void *element,  void *(*copyElement)(void *dest, const void *src, size_t n))
 {
-	sem_wait(&(ctx->ctrl->full));
-	sem_wait(&(ctx->ctrl->buffCtrl));
+	sem_wait(&(ctx->ctrl.full));
+	sem_wait(&(ctx->ctrl.buffCtrl));
 
-	copyElement(element, ctx->data + (ctx->ctrl->tail * ctx->ctrl->dataElementSz), ctx->ctrl->dataElementSz);
+	copyElement(element, ctx->data + (ctx->ctrl.tail * ctx->ctrl.dataElementSz), ctx->ctrl.dataElementSz);
 
-	ctx->ctrl->tail = (ctx->ctrl->tail + 1) % ctx->ctrl->dataElementSz;
-	ctx->ctrl->qtd--;
+	ctx->ctrl.tail = (ctx->ctrl.tail + 1) % ctx->ctrl.dataElementSz;
+	ctx->ctrl.qtd--;
 
-	sem_post(&(ctx->ctrl->buffCtrl));
-	sem_post(&(ctx->ctrl->empty));
+	sem_post(&(ctx->ctrl.buffCtrl));
+	sem_post(&(ctx->ctrl.empty));
 
 	return(SCB_OK);
 }
 
+/* copyElement(..., ..., size_t n) n is not used, instead ctx->ctrl.dataElementSz */
 scb_err_t scb_put(scb_t *ctx, void *element, void *(*copyElement)(void *dest, const void *src, size_t n))
 {
-	sem_wait(&(ctx->ctrl->empty));
-	sem_wait(&(ctx->ctrl->buffCtrl));
+	sem_wait(&(ctx->ctrl.empty));
+	sem_wait(&(ctx->ctrl.buffCtrl));
 
-	copyElement(ctx->data + (ctx->ctrl->head * ctx->ctrl->dataElementSz), element, ctx->ctrl->dataElementSz);
+	copyElement(ctx->data + (ctx->ctrl.head * ctx->ctrl.dataElementSz), element, ctx->ctrl.dataElementSz);
 
-	ctx->ctrl->head = (ctx->ctrl->head + 1) % ctx->ctrl->dataElementSz;
-	ctx->ctrl->qtd++;
+	ctx->ctrl.head = (ctx->ctrl.head + 1) % ctx->ctrl.dataElementSz;
+	ctx->ctrl.qtd++;
 
-	sem_post(&(ctx->ctrl->buffCtrl));
-	sem_post(&(ctx->ctrl->full));
+	sem_post(&(ctx->ctrl.buffCtrl));
+	sem_post(&(ctx->ctrl.full));
 
 	return(SCB_OK);
 }
 
 scb_err_t scb_iterator_create(scb_t *ctx, scb_iter_t *ctxIter)
 {
-	ctxIter->it = ctx->ctrl->tail;
+	ctxIter->it = ctx->ctrl.tail;
 
 	return(SCB_OK);
 }
 
 scb_err_t scb_iterator_get(scb_t *ctx, scb_iter_t *ctxIter, void *data)
 {
-	if((ctx->ctrl->head < ctxIter->it) || (ctx->ctrl->tail > ctxIter->it)){
-		ctxIter-> it = ctx->ctrl->tail;
+	if((ctx->ctrl.head < ctxIter->it) || (ctx->ctrl.tail > ctxIter->it)){
+		ctxIter->it = ctx->ctrl.tail;
 	}
 
 	return(SCB_OK);
@@ -168,7 +170,7 @@ scb_err_t scb_destroy(scb_t *ctx, int *err)
 {
 	int ret = 0;
 
-	ret = sem_destroy(&(ctx->ctrl->buffCtrl)) | sem_destroy(&(ctx->ctrl->empty)) | sem_destroy(&(ctx->ctrl->full));
+	ret = sem_destroy(&(ctx->ctrl.buffCtrl)) | sem_destroy(&(ctx->ctrl.empty)) | sem_destroy(&(ctx->ctrl.full));
 
 	if(ret != 0){
 		*err = errno;
@@ -205,5 +207,5 @@ void scb_strerror(scb_err_t err, int ret, char *msg)
 			break;
 	}
 
-	snprintf("Error at [%s]: [%s]\n", SCB_ERRORMSG_MAXSZ, errat, strerror(ret));
+	snprintf(msg, SCB_ERRORMSG_MAXSZ, "Error at [%s]: [%s]\n", errat, strerror(ret));
 }
