@@ -50,8 +50,6 @@ int main(int argc, char *argv[])
 
 	sec = atoi(argv[2]);
 
-	printf(">>>>> [%ld]\n\n", sizeof(element_t));
-
 	printf("Creating scb: [%s]\n", argv[1]);
 	scberr = scb_create(argv[1], 10, sizeof(element_t), &ctx, &ret);
 	if(scberr != SCB_OK){
