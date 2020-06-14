@@ -141,7 +141,7 @@ scb_err_t scb_get_block(scb_t *ctx, void *element,  void *(*copyElement)(void *d
 
 scb_err_t scb_put_block(scb_t *ctx, void *element, void *(*copyElement)(void *dest, const void *src))
 {
-	sem_wait(&(ctx->ctrl.empty));
+/*	sem_wait(&(ctx->ctrl.empty));*/
 	sem_wait(&(ctx->ctrl.buffCtrl));
 
 	copyElement(ctx->data + (ctx->ctrl.head * ctx->ctrl.dataElementSz), element);
@@ -150,7 +150,7 @@ scb_err_t scb_put_block(scb_t *ctx, void *element, void *(*copyElement)(void *de
 	ctx->ctrl.qtd++;
 
 	sem_post(&(ctx->ctrl.buffCtrl));
-	sem_post(&(ctx->ctrl.full));
+/*	sem_post(&(ctx->ctrl.full));*/
 
 	return(SCB_OK);
 }
@@ -215,7 +215,7 @@ void scb_strerror(scb_err_t err, int ret, char *msg)
 	snprintf(msg, SCB_ERRORMSG_MAXSZ, "Error at [%s]: [%s]\n", errat, strerror(ret));
 }
 
-scb_err_t scb_getInfo(char *name, scb_ctrl_t *inf, int *err)
+scb_err_t scb_getInfo(char *name, scb_t *inf, int *err)
 {
 	int fdshmem = 0;
 	void *shmem = NULL;

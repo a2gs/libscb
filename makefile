@@ -19,7 +19,7 @@ INCLUDEPATH = -I./
 LIBS = -lscb -lpthread -lrt
 LIBPATH = -L./
 
-all: clean lscb exectag
+all: clean lscb
 
 lscb:
 	@echo
@@ -29,7 +29,7 @@ lscb:
 	$(RANLIB) libscb.a
 	-$(RM) scb.o
 
-exectag: lscb
+sample: lscb
 	@echo
 	@echo "=== Compiling =============="
 	$(CC) -o prod prod.c $(CFLAGS) $(INCLUDEPATH) $(LIBPATH) $(LIBS)
@@ -39,4 +39,4 @@ exectag: lscb
 clean:
 	@echo
 	@echo "=== clean_data =============="
-	-$(RM) prod cons libscb.a *.o core
+	-$(RM) prod cons info libscb.a *.o core

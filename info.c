@@ -15,11 +15,11 @@ int main(int argc, char *argv[])
 {
 	int err = 0;
 	char scberrormsg[SCB_ERRORMSG_MAXSZ + 1] = {'\0'};
-	scb_ctrl_t inf;
+	scb_t inf;
 	scb_err_t scberr;
 
 	if(argc != 2){
-		printf("Usage: %s [SEMAPHORE_NAME]", argv[0]);
+		printf("Usage: %s [SEMAPHORE_NAME]\n", argv[0]);
 		return(1);
 	}
 
@@ -30,12 +30,12 @@ int main(int argc, char *argv[])
 		return(1);
 	}
 
-	printf("Circular buffer name: [%s]\n", argv[1]);
-	printf("Head................: [%du]\n", inf.head);
-	printf("Tail................: [%du]\n", inf.tail);
-	printf("Qtd.................: [%du]\n", inf.qtd);
-	printf("Total capacity......: [%du]\n", inf.dataTotal);
-	printf("Element size........: [%lu]\n", inf.dataElementSz);
+	printf("Circular buffer name: [%s]\n", inf.name);
+	printf("Head................: [%u]\n", inf.ctrl.head);
+	printf("Tail................: [%u]\n", inf.ctrl.tail);
+	printf("Qtd.................: [%u]\n", inf.ctrl.qtd);
+	printf("Total capacity......: [%u]\n", inf.ctrl.dataTotal);
+	printf("Element size (bytes): [%lu]\n", inf.ctrl.dataElementSz);
 
 	return(0);
 }

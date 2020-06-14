@@ -14,7 +14,18 @@
 # Activate tracing:
 #set -x
 
-./prod queue1 1 &
-sleep 1
-./cons queue1 2 &
-./cons queue1 3 &
+if [ "$#" -eq 1 ] ;
+then
+
+	./prod "$1" 1 > /dev/null &
+	sleep 1
+	./cons "$1" 2 > /dev/null &
+	./cons "$1" 3 > /dev/null &
+
+	watch -n 1 "ls -l /dev/shm/$1; echo \"----\"; lsof /dev/shm | grep -E \"(prod|cons|$1)\"; echo \"----\"; hexdump -Cv /dev/shm/$1"
+
+else
+
+	echo "Usage: $0 [QUEUE NAME]"
+
+fi

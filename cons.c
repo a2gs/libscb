@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
 	element_t e;
 
 	if(argc != 3){
-		printf("Usage: %s [SEMAPHORE_NAME] [SECONDS]", argv[0]);
+		printf("Usage: %s [SEMAPHORE_NAME] [SECONDS]\n", argv[0]);
 		return(1);
 	}
 
