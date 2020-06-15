@@ -44,17 +44,22 @@ typedef enum{
 	SCB_SHMEM,
 	SCB_FTRUNC,
 	SCB_SEMPH,
-	SCB_MMAP
+	SCB_MMAP,
+	SCB_FULL,
+	SCB_EMPTY,
+	SCB_BLOCKED
 }scb_err_t;
+
+typedef enum{
+	SCB_BLOCK = 0,
+	SCB_UNBLOCK
+}scb_block_t;
 
 scb_err_t scb_create(char *name, uint16_t totalElements, size_t sizeElements, scb_t **ctx, int *err);
 scb_err_t scb_attach(scb_t **ctx, char *name, int *err);
 
-scb_err_t scb_get_block(scb_t *ctx, void *element, void *(*copyElement)(void *dst, const void *src));
-/* scb_err_t scb_get_nonblock(scb_t *ctx, void *element, void *(*copyElement)(void *dst, const void *src)); */
-
-scb_err_t scb_put_block(scb_t *ctx, void *element, void *(*copyElement)(void *dst, const void *src));
-/* scb_err_t scb_put(scb_t *ctx, void *element, void *(*copyElement)(void *dst, const void *src)); */
+scb_err_t scb_get(scb_t *ctx, void *element, void *(*copyElement)(void *dst, const void *src), scb_block_t block);
+scb_err_t scb_put(scb_t *ctx, void *element, void *(*copyElement)(void *dst, const void *src), scb_block_t block);
 
 scb_err_t scb_getInfo(char *name, scb_t *inf, int *err);
 

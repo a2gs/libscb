@@ -17,12 +17,14 @@
 if [ "$#" -eq 1 ] ;
 then
 
+	rm /dev/shm/"$1"
+
 	./prod "$1" 1 > /dev/null &
 	sleep 1
 	./cons "$1" 2 > /dev/null &
 	./cons "$1" 3 > /dev/null &
 
-	watch -n 1 "ls -l /dev/shm/$1; echo \"----\"; lsof /dev/shm | grep -E \"(prod|cons|$1)\"; echo \"----\"; hexdump -Cv /dev/shm/$1"
+	watch -n 1 "ls -l /dev/shm/$1; echo \"----\"; lsof /dev/shm/$1; echo \"----\"; hexdump -Cv /dev/shm/$1"
 
 else
 

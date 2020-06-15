@@ -64,7 +64,7 @@ scb_err_t scb_create(char *name, uint16_t totalElements, size_t sizeElements, sc
 	(*ctx)->ctrl.dataTotal     = totalElements;
 	(*ctx)->ctrl.dataElementSz = sizeElements;
 
-	if(sem_init(&((*ctx)->ctrl.empty), 1, 1) == -1){
+	if(sem_init(&((*ctx)->ctrl.empty), 1, totalElements) == -1){
 		*err = errno;
 		shm_unlink(name);
 		return(SCB_SEMPH);
@@ -77,7 +77,7 @@ scb_err_t scb_create(char *name, uint16_t totalElements, size_t sizeElements, sc
 		return(SCB_SEMPH);
 	}
 
-	if(sem_init(&((*ctx)->ctrl.buffCtrl), 1, totalElements) == -1){
+	if(sem_init(&((*ctx)->ctrl.buffCtrl), 1, 1) == -1){
 		*err = errno;
 		sem_destroy(&(*ctx)->ctrl.empty);
 		sem_destroy(&(*ctx)->ctrl.full);
@@ -117,42 +117,60 @@ scb_err_t scb_attach(scb_t **ctx, char *name, int *err)
 	close(fdshmem);
 
 	(*ctx) = (scb_t *)shmem;
-	/* (*ctx)->data = (void *)(shmem + sizeof(scb_t)); */
 
 	*err = 0;
 	return(SCB_OK);
 }
 
-scb_err_t scb_get_block(scb_t *ctx, void *element,  void *(*copyElement)(void *dest, const void *src))
+scb_err_t scb_get(scb_t *ctx, void *element,  void *(*copyElement)(void *dest, const void *src), scb_block_t block)
 {
-	sem_wait(&(ctx->ctrl.full));
+	scb_err_t ret = SCB_OK;
+
+	if(block == SCB_UNBLOCK){
+		if(sem_trywait(&(ctx->ctrl.full)) == -1) return(SCB_BLOCKED);
+	}else sem_wait(&(ctx->ctrl.full));
+
 	sem_wait(&(ctx->ctrl.buffCtrl));
 
-	copyElement(element, ctx->data + (ctx->ctrl.tail * ctx->ctrl.dataElementSz));
+	if(ctx->ctrl.qtd == 0) ret = SCB_EMPTY;
+	else{
+		copyElement(element, ctx->data + (ctx->ctrl.tail * ctx->ctrl.dataElementSz));
 
-	ctx->ctrl.tail = (ctx->ctrl.tail + 1) % ctx->ctrl.dataElementSz;
-	ctx->ctrl.qtd--;
+		ctx->ctrl.tail = (ctx->ctrl.tail + 1) % ctx->ctrl.dataElementSz;
+		ctx->ctrl.qtd--;
+	}
 
 	sem_post(&(ctx->ctrl.buffCtrl));
 	sem_post(&(ctx->ctrl.empty));
 
-	return(SCB_OK);
+	return(ret);
 }
 
-scb_err_t scb_put_block(scb_t *ctx, void *element, void *(*copyElement)(void *dest, const void *src))
+/*
+ * block - 0 unblock | 1 block
+ */
+scb_err_t scb_put(scb_t *ctx, void *element, void *(*copyElement)(void *dest, const void *src), scb_block_t block)
 {
-/*	sem_wait(&(ctx->ctrl.empty));*/
+	scb_err_t ret = SCB_OK;
+
+	if(block == SCB_UNBLOCK){
+		if(sem_trywait(&(ctx->ctrl.empty)) == -1) return(SCB_BLOCKED);
+	}else sem_wait(&(ctx->ctrl.empty));
+
 	sem_wait(&(ctx->ctrl.buffCtrl));
 
-	copyElement(ctx->data + (ctx->ctrl.head * ctx->ctrl.dataElementSz), element);
+	if(ctx->ctrl.qtd == ctx->ctrl.dataTotal) ret = SCB_FULL;
+	else{
+		copyElement(ctx->data + (ctx->ctrl.head * ctx->ctrl.dataElementSz), element);
 
-	ctx->ctrl.head = (ctx->ctrl.head + 1) % ctx->ctrl.dataElementSz;
-	ctx->ctrl.qtd++;
+		ctx->ctrl.head = (ctx->ctrl.head + 1) % ctx->ctrl.dataElementSz;
+		ctx->ctrl.qtd++;
+	}
 
 	sem_post(&(ctx->ctrl.buffCtrl));
-/*	sem_post(&(ctx->ctrl.full));*/
+	sem_post(&(ctx->ctrl.full));
 
-	return(SCB_OK);
+	return(ret);
 }
 
 scb_err_t scb_iterator_create(scb_t *ctx, scb_iter_t *ctxIter)
@@ -193,26 +211,48 @@ scb_err_t scb_destroy(scb_t *ctx, int *err)
 void scb_strerror(scb_err_t err, int ret, char *msg)
 {
 	char *errat = NULL;
+	char errdesc[SCB_ERRORMSG_MAXSZ] = {'\0'};
 
 	switch(err){
 		case SCB_SHMEM:
 			errat = "Shared Memory";
+			/* TODO strerror_r(ret, errdesc, SCB_ERRORMSG_MAXSZ); */
+			strncpy(errdesc, strerror(ret), SCB_ERRORMSG_MAXSZ);
 			break;
 		case SCB_FTRUNC:
 			errat = "FTruncate";
+			/* TODO strerror_r(ret, errdesc, SCB_ERRORMSG_MAXSZ); */
+			strncpy(errdesc, strerror(ret), SCB_ERRORMSG_MAXSZ);
 			break;
 		case SCB_SEMPH:
 			errat = "Semaphore";
+			/* TODO strerror_r(ret, errdesc, SCB_ERRORMSG_MAXSZ); */
+			strncpy(errdesc, strerror(ret), SCB_ERRORMSG_MAXSZ);
 			break;
 		case SCB_MMAP:
 			errat = "mmap";
+			/* TODO strerror_r(ret, errdesc, SCB_ERRORMSG_MAXSZ); */
+			strncpy(errdesc, strerror(ret), SCB_ERRORMSG_MAXSZ);
+			break;
+		case SCB_FULL:
+			errat = "SCB FULL";
+			strncpy(errdesc, "There is no space", SCB_ERRORMSG_MAXSZ);
+			break;
+		case SCB_EMPTY:
+			errat = "SCB EMPTY";
+			strncpy(errdesc, "There are no elements", SCB_ERRORMSG_MAXSZ);
+			break;
+		case SCB_BLOCKED:
+			errat = "SCB BLOCKED";
+			strncpy(errdesc, "Access blocked (in use at operation side or full or empty. Try again)", SCB_ERRORMSG_MAXSZ);
 			break;
 		default:
 			errat = "Success";
+			strncpy(errdesc, "no error", SCB_ERRORMSG_MAXSZ);
 			break;
 	}
 
-	snprintf(msg, SCB_ERRORMSG_MAXSZ, "Error at [%s]: [%s]\n", errat, strerror(ret));
+	snprintf(msg, SCB_ERRORMSG_MAXSZ, "Error at [%s]: [%s]\n", errat, errdesc);
 }
 
 scb_err_t scb_getInfo(char *name, scb_t *inf, int *err)

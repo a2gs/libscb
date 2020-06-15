@@ -28,7 +28,7 @@ void prodElement(element_t *e)
 
 	memcpy(e, &m[i], sizeof(element_t));
 
-	if(i == 9) i = 0;
+	if(i == 7) i = 0;
 	else       i++;
 
 	return;
@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
 	sec = atoi(argv[2]);
 
 	printf("Creating scb: [%s]\n", argv[1]);
-	scberr = scb_create(argv[1], 10, sizeof(element_t), &ctx, &ret);
+	scberr = scb_create(argv[1], 8, sizeof(element_t), &ctx, &ret);
 	if(scberr != SCB_OK){
 		scb_strerror(scberr, ret, scberrormsg);
 		printf("%s", scberrormsg);
@@ -61,13 +61,14 @@ int main(int argc, char *argv[])
 	while(1){
 		prodElement(&e);
 
-		printf("Insering: [%d - %f - %s] into [%s]. Sleep(%d)\n", e.a, e.b, e.c, argv[1], sec);
-		scberr = scb_put_block(ctx, &e, copyElement);
+		scberr = scb_put(ctx, &e, copyElement, SCB_UNBLOCK);
 		if(scberr != SCB_OK){
 			scb_strerror(scberr, ret, scberrormsg);
 			printf("%s", scberrormsg);
 			return(1);
 		}
+
+		printf("Insering: [%d - %f - %s] into [%s]. Sleep(%d)\n", e.a, e.b, e.c, argv[1], sec);
 
 		sleep(sec);
 	}

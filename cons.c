@@ -24,6 +24,7 @@ int main(int argc, char *argv[])
 	scb_t *ctx;
 	scb_err_t scberr;
 	element_t e;
+	pid_t p;
 
 	if(argc != 3){
 		printf("Usage: %s [SEMAPHORE_NAME] [SECONDS]\n", argv[0]);
@@ -31,6 +32,7 @@ int main(int argc, char *argv[])
 	}
 
 	sec = atoi(argv[2]);
+	p = getpid();
 
 	scberr = scb_attach(&ctx, argv[1], &ret);
 	if(scberr != SCB_OK){
@@ -42,14 +44,14 @@ int main(int argc, char *argv[])
 	while(1){
 		memset(&e, 0, sizeof(element_t));
 
-		scberr = scb_get_block(ctx, &e, copyElement);
+		scberr = scb_get(ctx, &e, copyElement, SCB_BLOCK);
 		if(scberr != SCB_OK){
 			scb_strerror(scberr, ret, scberrormsg);
 			printf("%s", scberrormsg);
 			return(1);
 		}
 
-		printf("PID [%d] got [%d][%f][%s]\n", getpid(), e.a, e.b, e.c);
+		printf("PID [%d] got [%d][%f][%s]\n", p, e.a, e.b, e.c);
 
 		sleep(sec);
 	}
