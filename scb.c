@@ -64,6 +64,8 @@ scb_err_t scb_create(char *name, uint16_t totalElements, size_t sizeElements, sc
 	(*ctx)->ctrl.dataTotal     = totalElements;
 	(*ctx)->ctrl.dataElementSz = sizeElements;
 
+	(*ctx)->data = (void *)(shmem + sizeof(scb_t));
+
 	if(sem_init(&((*ctx)->ctrl.empty), 1, totalElements) == -1){
 		*err = errno;
 		shm_unlink(name);
@@ -85,8 +87,6 @@ scb_err_t scb_create(char *name, uint16_t totalElements, size_t sizeElements, sc
 		return(SCB_SEMPH);
 	}
 
-	(*ctx)->data = (void *)(shmem + sizeof(scb_t));
-
 	*err = 0;
 	return(SCB_OK);
 }
@@ -96,10 +96,13 @@ scb_err_t scb_attach(scb_t **ctx, char *name, int *err)
 	int fdshmem = 0;
 	size_t szshmem = 0;
 	void *shmem = NULL;
+	scb_t scbInf;
+	scb_err_t scberr;
 
-	/* strncpy(ctx->name, name, SCB_NAME_MAXSZ); */
+	scberr = scb_getInfo(name, &scbInf, err);
+	if(scberr != SCB_OK) return(scberr);
 
-	szshmem = sizeof(scb_t) /* TODO: + (totalElements * sizeElements)*/;
+	szshmem = sizeof(scb_t) + (scbInf.ctrl.dataTotal * scbInf.ctrl.dataElementSz);
 
 	fdshmem = shm_open(name, O_RDWR, S_IRUSR | S_IWUSR);
 	if(fdshmem == -1){
@@ -117,6 +120,7 @@ scb_err_t scb_attach(scb_t **ctx, char *name, int *err)
 	close(fdshmem);
 
 	(*ctx) = (scb_t *)shmem;
+	(*ctx)->data = (void *)(shmem + sizeof(scb_t));
 
 	*err = 0;
 	return(SCB_OK);
@@ -136,7 +140,7 @@ scb_err_t scb_get(scb_t *ctx, void *element,  void *(*copyElement)(void *dest, c
 	else{
 		copyElement(element, ctx->data + (ctx->ctrl.tail * ctx->ctrl.dataElementSz));
 
-		ctx->ctrl.tail = (ctx->ctrl.tail + 1) % ctx->ctrl.dataElementSz;
+		ctx->ctrl.tail = (ctx->ctrl.tail + 1) % ctx->ctrl.dataTotal;
 		ctx->ctrl.qtd--;
 	}
 
@@ -163,7 +167,7 @@ scb_err_t scb_put(scb_t *ctx, void *element, void *(*copyElement)(void *dest, co
 	else{
 		copyElement(ctx->data + (ctx->ctrl.head * ctx->ctrl.dataElementSz), element);
 
-		ctx->ctrl.head = (ctx->ctrl.head + 1) % ctx->ctrl.dataElementSz;
+		ctx->ctrl.head = (ctx->ctrl.head + 1) % ctx->ctrl.dataTotal;
 		ctx->ctrl.qtd++;
 	}
 

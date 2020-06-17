@@ -20,7 +20,7 @@ then
 	rm /dev/shm/"$1"
 
 	./prod "$1" 1 > /dev/null &
-	sleep 1
+	sleep 10
 	./cons "$1" 2 > /dev/null &
 	./cons "$1" 3 > /dev/null &
 
