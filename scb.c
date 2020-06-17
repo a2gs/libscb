@@ -194,29 +194,23 @@ scb_err_t scb_iterator_get(scb_t *ctx, scb_iter_t *ctxIter, void *data)
 	return(SCB_OK);
 }
 
-scb_err_t scb_destroyByName(char *name, int *err)
-{
-	scb_err_t ret = SCB_OK;
-	scb_t *ctx = NULL;
-
-	/* TODO: open */
-	ret = scb_destroy(ctx, err);
-
-	return(ret);
-}
-
-scb_err_t scb_destroy(scb_t *ctx, int *err)
+scb_err_t scb_destroy(char *name, int *err)
 {
 	int ret = 0;
+	scb_t ctx;
+	scb_err_t scberr;
 
-	ret = sem_destroy(&(ctx->ctrl->buffCtrl)) | sem_destroy(&(ctx->ctrl->empty)) | sem_destroy(&(ctx->ctrl->full));
+	scberr = scb_attach(&ctx, name, err);
+	if(scberr != SCB_OK) return(scberr);
+
+	ret = sem_destroy(&(ctx.ctrl->buffCtrl)) | sem_destroy(&(ctx.ctrl->empty)) | sem_destroy(&(ctx.ctrl->full));
 
 	if(ret != 0){
 		*err = errno;
 		return(SCB_SEMPH);
 	}
 
-	if(shm_unlink(ctx->name) == -1){
+	if(shm_unlink(ctx.name) == -1){
 		*err = errno;
 		return(SCB_SHMEM);
 	}

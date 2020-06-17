@@ -35,6 +35,7 @@ sample: lscb
 	$(CC) -o prod prod.c $(CFLAGS) $(INCLUDEPATH) $(LIBPATH) $(LIBS)
 	$(CC) -o cons cons.c $(CFLAGS) $(INCLUDEPATH) $(LIBPATH) $(LIBS)
 	$(CC) -o info info.c $(CFLAGS) $(INCLUDEPATH) $(LIBPATH) $(LIBS)
+	$(CC) -o destroy destroy.c $(CFLAGS) $(INCLUDEPATH) $(LIBPATH) $(LIBS)
 
 clean:
 	@echo

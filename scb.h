@@ -66,8 +66,7 @@ scb_err_t scb_getInfo(char *name, scb_ctrl_t *inf, int *err);
 scb_err_t scb_iterator_create(scb_t *ctx, scb_iter_t *ctxIter);
 scb_err_t scb_iterator_get(scb_t *ctx, scb_iter_t *ctxIter, void *data);
 
-scb_err_t scb_destroy(scb_t *ctx, int *err);
-scb_err_t scb_destroyByName(char *name, int *err);
+scb_err_t scb_destroy(char *name, int *err);
 
 void scb_strerror(scb_err_t err, int ret, char *msg);
 
