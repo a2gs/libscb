@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
 	int ret = 0;
 	unsigned int sec = 0;
 	char scberrormsg[SCB_ERRORMSG_MAXSZ + 1] = {'\0'};
-	scb_t *ctx;
+	scb_t ctx;
 	scb_err_t scberr = SCB_OK;
 	element_t e;
 
@@ -55,13 +55,20 @@ int main(int argc, char *argv[])
 	if(scberr != SCB_OK){
 		scb_strerror(scberr, ret, scberrormsg);
 		printf("%s", scberrormsg);
-		return(1);
+
+		printf("Attaching existing scb: [%s]\n", argv[1]);
+		scberr = scb_attach(&ctx, argv[1], &ret);
+		if(scberr != SCB_OK){
+			scb_strerror(scberr, ret, scberrormsg);
+			printf("%s", scberrormsg);
+			return(1);
+		}
 	}
 
 	while(1){
 		prodElement(&e);
 
-		scberr = scb_put(ctx, &e, copyElement, SCB_UNBLOCK);
+		scberr = scb_put(&ctx, &e, copyElement, SCB_UNBLOCK);
 		if(scberr != SCB_OK){
 			scb_strerror(scberr, ret, scberrormsg);
 			printf("%s", scberrormsg);
@@ -74,7 +81,7 @@ int main(int argc, char *argv[])
 	}
 
 	printf("Destroying [%s]\n", argv[1]);
-	scberr = scb_destroy(ctx, &ret);
+	scberr = scb_destroy(&ctx, &ret);
 	if(scberr != SCB_OK){
 		scb_strerror(scberr, ret, scberrormsg);
 		printf("%s", scberrormsg);

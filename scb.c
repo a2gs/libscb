@@ -23,13 +23,13 @@
 
 #include "scb.h"
 
-scb_err_t scb_create(char *name, uint16_t totalElements, size_t sizeElements, scb_t **ctx, int *err)
+scb_err_t scb_create(char *name, uint16_t totalElements, size_t sizeElements, scb_t *ctx, int *err)
 {
 	int fdshmem = 0;
 	size_t szshmem = 0;
 	void *shmem = NULL;
 
-	szshmem = sizeof(scb_t) + (totalElements * sizeElements);
+	szshmem = sizeof(scb_ctrl_t) + (totalElements * sizeElements);
 
 	fdshmem = shm_open(name, O_CREAT | O_EXCL | O_RDWR, S_IRUSR | S_IWUSR);
 	if(fdshmem == -1){
@@ -53,36 +53,36 @@ scb_err_t scb_create(char *name, uint16_t totalElements, size_t sizeElements, sc
 
 	close(fdshmem);
 
-	*ctx = (scb_t *)shmem;
+	ctx->ctrl = (scb_ctrl_t *)shmem;
 
-	strncpy((*ctx)->name, name, SCB_NAME_MAXSZ);
+	strncpy(ctx->name, name, SCB_NAME_MAXSZ);
 
-	(*ctx)->ctrl.head = 0;
-	(*ctx)->ctrl.tail = 0;
-	(*ctx)->ctrl.qtd  = 0;
+	ctx->ctrl->head = 0;
+	ctx->ctrl->tail = 0;
+	ctx->ctrl->qtd  = 0;
 
-	(*ctx)->ctrl.dataTotal     = totalElements;
-	(*ctx)->ctrl.dataElementSz = sizeElements;
+	ctx->ctrl->dataTotal     = totalElements;
+	ctx->ctrl->dataElementSz = sizeElements;
 
-	(*ctx)->data = (void *)(shmem + sizeof(scb_t));
+	ctx->data = (void *)(shmem + sizeof(scb_ctrl_t));
 
-	if(sem_init(&((*ctx)->ctrl.empty), 1, totalElements) == -1){
+	if(sem_init(&(ctx->ctrl->empty), 1, totalElements) == -1){
 		*err = errno;
 		shm_unlink(name);
 		return(SCB_SEMPH);
 	}
 
-	if(sem_init(&((*ctx)->ctrl.full), 1, 0) == -1){
+	if(sem_init(&(ctx->ctrl->full), 1, 0) == -1){
 		*err = errno;
-		sem_destroy(&(*ctx)->ctrl.empty);
+		sem_destroy(&ctx->ctrl->empty);
 		shm_unlink(name);
 		return(SCB_SEMPH);
 	}
 
-	if(sem_init(&((*ctx)->ctrl.buffCtrl), 1, 1) == -1){
+	if(sem_init(&(ctx->ctrl->buffCtrl), 1, 1) == -1){
 		*err = errno;
-		sem_destroy(&(*ctx)->ctrl.empty);
-		sem_destroy(&(*ctx)->ctrl.full);
+		sem_destroy(&ctx->ctrl->empty);
+		sem_destroy(&ctx->ctrl->full);
 		shm_unlink(name);
 		return(SCB_SEMPH);
 	}
@@ -91,18 +91,18 @@ scb_err_t scb_create(char *name, uint16_t totalElements, size_t sizeElements, sc
 	return(SCB_OK);
 }
 
-scb_err_t scb_attach(scb_t **ctx, char *name, int *err)
+scb_err_t scb_attach(scb_t *ctx, char *name, int *err)
 {
 	int fdshmem = 0;
 	size_t szshmem = 0;
 	void *shmem = NULL;
-	scb_t scbInf;
+	scb_ctrl_t scbInf;
 	scb_err_t scberr;
 
 	scberr = scb_getInfo(name, &scbInf, err);
 	if(scberr != SCB_OK) return(scberr);
 
-	szshmem = sizeof(scb_t) + (scbInf.ctrl.dataTotal * scbInf.ctrl.dataElementSz);
+	szshmem = sizeof(scb_ctrl_t) + (scbInf.dataTotal * scbInf.dataElementSz);
 
 	fdshmem = shm_open(name, O_RDWR, S_IRUSR | S_IWUSR);
 	if(fdshmem == -1){
@@ -119,8 +119,9 @@ scb_err_t scb_attach(scb_t **ctx, char *name, int *err)
 
 	close(fdshmem);
 
-	(*ctx) = (scb_t *)shmem;
-	(*ctx)->data = (void *)(shmem + sizeof(scb_t));
+	ctx->ctrl = (scb_ctrl_t *)shmem;
+	ctx->data = (void *)(shmem + sizeof(scb_ctrl_t));
+	strncpy(ctx->name, name, SCB_NAME_MAXSZ);
 
 	*err = 0;
 	return(SCB_OK);
@@ -131,21 +132,21 @@ scb_err_t scb_get(scb_t *ctx, void *element,  void *(*copyElement)(void *dest, c
 	scb_err_t ret = SCB_OK;
 
 	if(block == SCB_UNBLOCK){
-		if(sem_trywait(&(ctx->ctrl.full)) == -1) return(SCB_BLOCKED);
-	}else sem_wait(&(ctx->ctrl.full));
+		if(sem_trywait(&(ctx->ctrl->full)) == -1) return(SCB_BLOCKED);
+	}else sem_wait(&(ctx->ctrl->full));
 
-	sem_wait(&(ctx->ctrl.buffCtrl));
+	sem_wait(&(ctx->ctrl->buffCtrl));
 
-	if(ctx->ctrl.qtd == 0) ret = SCB_EMPTY;
+	if(ctx->ctrl->qtd == 0) ret = SCB_EMPTY;
 	else{
-		copyElement(element, ctx->data + (ctx->ctrl.tail * ctx->ctrl.dataElementSz));
+		copyElement(element, ctx->data + (ctx->ctrl->tail * ctx->ctrl->dataElementSz));
 
-		ctx->ctrl.tail = (ctx->ctrl.tail + 1) % ctx->ctrl.dataTotal;
-		ctx->ctrl.qtd--;
+		ctx->ctrl->tail = (ctx->ctrl->tail + 1) % ctx->ctrl->dataTotal;
+		ctx->ctrl->qtd--;
 	}
 
-	sem_post(&(ctx->ctrl.buffCtrl));
-	sem_post(&(ctx->ctrl.empty));
+	sem_post(&(ctx->ctrl->buffCtrl));
+	sem_post(&(ctx->ctrl->empty));
 
 	return(ret);
 }
@@ -158,46 +159,57 @@ scb_err_t scb_put(scb_t *ctx, void *element, void *(*copyElement)(void *dest, co
 	scb_err_t ret = SCB_OK;
 
 	if(block == SCB_UNBLOCK){
-		if(sem_trywait(&(ctx->ctrl.empty)) == -1) return(SCB_BLOCKED);
-	}else sem_wait(&(ctx->ctrl.empty));
+		if(sem_trywait(&(ctx->ctrl->empty)) == -1) return(SCB_BLOCKED);
+	}else sem_wait(&(ctx->ctrl->empty));
 
-	sem_wait(&(ctx->ctrl.buffCtrl));
+	sem_wait(&(ctx->ctrl->buffCtrl));
 
-	if(ctx->ctrl.qtd == ctx->ctrl.dataTotal) ret = SCB_FULL;
+	if(ctx->ctrl->qtd == ctx->ctrl->dataTotal) ret = SCB_FULL;
 	else{
-		copyElement(ctx->data + (ctx->ctrl.head * ctx->ctrl.dataElementSz), element);
+		copyElement(ctx->data + (ctx->ctrl->head * ctx->ctrl->dataElementSz), element);
 
-		ctx->ctrl.head = (ctx->ctrl.head + 1) % ctx->ctrl.dataTotal;
-		ctx->ctrl.qtd++;
+		ctx->ctrl->head = (ctx->ctrl->head + 1) % ctx->ctrl->dataTotal;
+		ctx->ctrl->qtd++;
 	}
 
-	sem_post(&(ctx->ctrl.buffCtrl));
-	sem_post(&(ctx->ctrl.full));
+	sem_post(&(ctx->ctrl->buffCtrl));
+	sem_post(&(ctx->ctrl->full));
 
 	return(ret);
 }
 
 scb_err_t scb_iterator_create(scb_t *ctx, scb_iter_t *ctxIter)
 {
-	ctxIter->it = ctx->ctrl.tail;
+	ctxIter->it = ctx->ctrl->tail;
 
 	return(SCB_OK);
 }
 
 scb_err_t scb_iterator_get(scb_t *ctx, scb_iter_t *ctxIter, void *data)
 {
-	if((ctx->ctrl.head < ctxIter->it) || (ctx->ctrl.tail > ctxIter->it)){
-		ctxIter->it = ctx->ctrl.tail;
+	if((ctx->ctrl->head < ctxIter->it) || (ctx->ctrl->tail > ctxIter->it)){
+		ctxIter->it = ctx->ctrl->tail;
 	}
 
 	return(SCB_OK);
+}
+
+scb_err_t scb_destroyByName(char *name, int *err)
+{
+	scb_err_t ret = SCB_OK;
+	scb_t *ctx = NULL;
+
+	/* TODO: open */
+	ret = scb_destroy(ctx, err);
+
+	return(ret);
 }
 
 scb_err_t scb_destroy(scb_t *ctx, int *err)
 {
 	int ret = 0;
 
-	ret = sem_destroy(&(ctx->ctrl.buffCtrl)) | sem_destroy(&(ctx->ctrl.empty)) | sem_destroy(&(ctx->ctrl.full));
+	ret = sem_destroy(&(ctx->ctrl->buffCtrl)) | sem_destroy(&(ctx->ctrl->empty)) | sem_destroy(&(ctx->ctrl->full));
 
 	if(ret != 0){
 		*err = errno;
@@ -259,7 +271,7 @@ void scb_strerror(scb_err_t err, int ret, char *msg)
 	snprintf(msg, SCB_ERRORMSG_MAXSZ, "Error at [%s]: [%s]\n", errat, errdesc);
 }
 
-scb_err_t scb_getInfo(char *name, scb_t *inf, int *err)
+scb_err_t scb_getInfo(char *name, scb_ctrl_t *inf, int *err)
 {
 	int fdshmem = 0;
 	void *shmem = NULL;
@@ -277,7 +289,7 @@ scb_err_t scb_getInfo(char *name, scb_t *inf, int *err)
 		return(SCB_SHMEM);
 	}
 
-	memcpy(inf, shmem, sizeof(scb_t));
+	memcpy(inf, shmem, sizeof(scb_ctrl_t));
 
 	close(fdshmem);
 
