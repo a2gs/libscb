@@ -81,7 +81,6 @@ int main(int argc, char *argv[])
 	}
 
 	printf("Destroying [%s]\n", argv[1]);
-	/*scberr = scb_destroy(&ctx, &ret);*/
 	scberr = scb_destroy(argv[1], &ret);
 	if(scberr != SCB_OK){
 		scb_strerror(scberr, ret, scberrormsg);

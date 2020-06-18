@@ -36,8 +36,9 @@ sample: lscb
 	$(CC) -o cons cons.c $(CFLAGS) $(INCLUDEPATH) $(LIBPATH) $(LIBS)
 	$(CC) -o info info.c $(CFLAGS) $(INCLUDEPATH) $(LIBPATH) $(LIBS)
 	$(CC) -o destroy destroy.c $(CFLAGS) $(INCLUDEPATH) $(LIBPATH) $(LIBS)
+	$(CC) -o iterator iterator.c $(CFLAGS) $(INCLUDEPATH) $(LIBPATH) $(LIBS)
 
 clean:
 	@echo
 	@echo "=== clean_data =============="
-	-$(RM) prod cons info libscb.a *.o core
+	-$(RM) prod cons info destroy iterator libscb.a *.o core

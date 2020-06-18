@@ -8,13 +8,10 @@
  */
 
 #include <stdio.h>
-/*#include <stdlib.h>*/
 #include <unistd.h>
 #include <stdint.h>
 #include <string.h>
 #include <errno.h>
-/*#include <signal.h>*/
-/*#include <time.h>*/
 #include <fcntl.h>
 #include <semaphore.h>
 #include <sys/types.h>
@@ -181,15 +178,20 @@ scb_err_t scb_put(scb_t *ctx, void *element, void *(*copyElement)(void *dest, co
 scb_err_t scb_iterator_create(scb_t *ctx, scb_iter_t *ctxIter)
 {
 	ctxIter->it = ctx->ctrl->tail;
+	ctxIter->qtd = ctx->ctrl->qtd;
 
 	return(SCB_OK);
 }
 
-scb_err_t scb_iterator_get(scb_t *ctx, scb_iter_t *ctxIter, void *data)
+scb_err_t scb_iterator_get(scb_t *ctx, scb_iter_t *ctxIter, void *data, void *(*copyElement)(void *dest, const void *src))
 {
-	if((ctx->ctrl->head < ctxIter->it) || (ctx->ctrl->tail > ctxIter->it)){
-		ctxIter->it = ctx->ctrl->tail;
-	}
+	if(ctxIter->qtd == 0)
+		return(SCB_ITER_END);
+
+	copyElement(data, ctx->data + (ctxIter->it * ctx->ctrl->dataElementSz));
+
+	ctxIter->it = (ctxIter->it + 1) % ctx->ctrl->dataTotal;
+	ctxIter->qtd--;
 
 	return(SCB_OK);
 }

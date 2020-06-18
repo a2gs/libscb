@@ -16,6 +16,7 @@ typedef struct _element_t{
 	char c[10];
 }element_t;
 
+#include <string.h>
 void * copyElement(void *dst, const void *src)
 {
 	return(memcpy(dst, src, sizeof(element_t)));

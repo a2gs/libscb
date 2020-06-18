@@ -37,6 +37,7 @@ typedef struct _scb_t{
 
 typedef struct _scb_iter_t{
 	uint16_t it;
+	uint16_t qtd;
 }scb_iter_t;
 
 typedef enum{
@@ -47,7 +48,8 @@ typedef enum{
 	SCB_MMAP,
 	SCB_FULL,
 	SCB_EMPTY,
-	SCB_BLOCKED
+	SCB_BLOCKED,
+	SCB_ITER_END
 }scb_err_t;
 
 typedef enum{
@@ -64,7 +66,7 @@ scb_err_t scb_put(scb_t *ctx, void *element, void *(*copyElement)(void *dst, con
 scb_err_t scb_getInfo(char *name, scb_ctrl_t *inf, int *err);
 
 scb_err_t scb_iterator_create(scb_t *ctx, scb_iter_t *ctxIter);
-scb_err_t scb_iterator_get(scb_t *ctx, scb_iter_t *ctxIter, void *data);
+scb_err_t scb_iterator_get(scb_t *ctx, scb_iter_t *ctxIter, void *data, void *(*copyElement)(void *dest, const void *src));
 
 scb_err_t scb_destroy(char *name, int *err);
 

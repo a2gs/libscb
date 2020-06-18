@@ -24,7 +24,7 @@ then
 	./cons "$1" 2 > /dev/null &
 	./cons "$1" 3 > /dev/null &
 
-	watch -n 1 "ls -l /dev/shm/$1; echo \"----\"; lsof /dev/shm/$1; echo \"----\"; hexdump -Cv /dev/shm/$1"
+	watch -n 1 "ls -l /dev/shm/$1; echo \"----\"; lsof /dev/shm/$1; echo \"----\"; hexdump -Cv /dev/shm/$1; ./iterator $1"
 
 else
 
