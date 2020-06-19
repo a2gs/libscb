@@ -60,10 +60,12 @@ typedef enum{
 scb_err_t scb_create(char *name, uint16_t totalElements, size_t sizeElements, scb_t *ctx, int *err);
 scb_err_t scb_attach(scb_t *ctx, char *name, int *err);
 
-scb_err_t scb_get(scb_t *ctx, void *element, void *(*copyElement)(void *dst, const void *src), scb_block_t block);
-scb_err_t scb_put(scb_t *ctx, void *element, void *(*copyElement)(void *dst, const void *src), scb_block_t block);
+scb_err_t scb_get(scb_t *ctx, void *element, void *(*copyElement)(void *dst, const void *src), scb_block_t block, int *ret);
+scb_err_t scb_put(scb_t *ctx, void *element, void *(*copyElement)(void *dst, const void *src), scb_block_t block, int *ret);
 
-scb_err_t scb_getInfo(char *name, scb_ctrl_t *inf, int *err);
+scb_err_t scb_getInfo(char *name, scb_ctrl_t *inf, int *sf, int *se, int *sb, int *err);
+
+scb_err_t scb_lock(scb_t *ctx, scb_block_t block, int *err);
 
 scb_err_t scb_iterator_create(scb_t *ctx, scb_iter_t *ctxIter);
 scb_err_t scb_iterator_get(scb_t *ctx, scb_iter_t *ctxIter, void *data, void *(*copyElement)(void *dest, const void *src));

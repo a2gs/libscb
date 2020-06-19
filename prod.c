@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
 	while(1){
 		prodElement(&e);
 
-		scberr = scb_put(&ctx, &e, copyElement, SCB_UNBLOCK);
+		scberr = scb_put(&ctx, &e, copyElement, SCB_UNBLOCK, &ret);
 		if(scberr != SCB_OK){
 			scb_strerror(scberr, ret, scberrormsg);
 			printf("%s", scberrormsg);

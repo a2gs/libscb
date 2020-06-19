@@ -38,7 +38,18 @@ int main(int argc, char *argv[])
 		return(1);
 	}
 
-	/* Iterator is a tail and head position snapshot. But data may changes between fetches (by another processes). */
+	printf("Locking the scb from another processes.\n");
+	scberr = scb_lock(&ctx, SCB_BLOCK, &err);
+	if(scberr != SCB_OK){
+		scb_strerror(scberr, err, scberrormsg);
+		printf("%s", scberrormsg);
+		return(1);
+	}
+
+	/* Iterator is a tail and head position snapshot, but data
+	 * may changes between fetches (by another processes).
+	 * That's cuz we call scb_lock() before and unlock after.
+	 */
 	scberr = scb_iterator_create(&ctx, &it);
 	if(scberr != SCB_OK){
 		scb_strerror(scberr, err, scberrormsg);
@@ -57,6 +68,14 @@ int main(int argc, char *argv[])
 		}
 
 		printf("PID [%d] got [%d][%f][%s]\n", p, e.a, e.b, e.c);
+	}
+
+	printf("Unlocking the scb from another processes.\n");
+	scberr = scb_lock(&ctx, SCB_UNBLOCK, &err);
+	if(scberr != SCB_OK){
+		scb_strerror(scberr, err, scberrormsg);
+		printf("%s", scberrormsg);
+		return(1);
 	}
 
 	return(0);

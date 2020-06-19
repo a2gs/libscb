@@ -14,6 +14,9 @@
 int main(int argc, char *argv[])
 {
 	int err = 0;
+	int semFull = 0;
+	int semEmpty = 0;
+	int semBuff = 0;
 	char scberrormsg[SCB_ERRORMSG_MAXSZ + 1] = {'\0'};
 	scb_ctrl_t inf;
 	scb_err_t scberr;
@@ -23,7 +26,7 @@ int main(int argc, char *argv[])
 		return(1);
 	}
 
-	scberr = scb_getInfo(argv[1], &inf, &err);
+	scberr = scb_getInfo(argv[1], &inf, &semFull, &semEmpty, &semBuff, &err);
 	if(scberr != SCB_OK){
 		scb_strerror(scberr, err, scberrormsg);
 		printf("%s", scberrormsg);
@@ -36,6 +39,7 @@ int main(int argc, char *argv[])
 	printf("Qtd.................: [%u]\n", inf.qtd);
 	printf("Total capacity......: [%u]\n", inf.dataTotal);
 	printf("Element size (bytes): [%lu]\n", inf.dataElementSz);
+	printf("Semaphores..........: Full [%d] | Empty [%d] | Buffer control [%d]\n", semFull, semEmpty, semBuff);
 
 	return(0);
 }

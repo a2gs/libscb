@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
 	while(1){
 		memset(&e, 0, sizeof(element_t));
 
-		scberr = scb_get(&ctx, &e, copyElement, SCB_BLOCK);
+		scberr = scb_get(&ctx, &e, copyElement, SCB_BLOCK, &ret);
 		if(scberr != SCB_OK){
 			scb_strerror(scberr, ret, scberrormsg);
 			printf("%s", scberrormsg);
