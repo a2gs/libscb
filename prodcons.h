@@ -16,6 +16,16 @@ typedef struct _element_t{
 	char c[10];
 }element_t;
 
+#define SCB_SAMPLE_CHECK_ERROR(__SCBSAMPLE_RET, __SCB_SAMPLE_APIERR, __SCB_SAMPLE_ERRNO, __SCB_SAMPLE_RET) \
+{                                                                                                          \
+	if(__SCBSAMPLE_RET != __SCB_SAMPLE_APIERR){                                                             \
+		char scberrormsg[SCB_ERRORMSG_MAXSZ + 1] = {'\0'};                                                   \
+		scb_strerror(__SCB_SAMPLE_APIERR, __SCB_SAMPLE_ERRNO, scberrormsg);                                  \
+		printf("%s", scberrormsg);                                                                           \
+		return(__SCB_SAMPLE_RET);                                                                            \
+	}                                                                                                       \
+}
+
 #include <string.h>
 void * copyElement(void *dst, const void *src)
 {

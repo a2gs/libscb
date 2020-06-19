@@ -10,11 +10,11 @@
 #include <stdio.h>
 
 #include "scb.h"
+#include "prodcons.h"
 
 int main(int argc, char *argv[])
 {
 	int err = 0;
-	char scberrormsg[SCB_ERRORMSG_MAXSZ + 1] = {'\0'};
 	scb_err_t scberr;
 
 	if(argc != 2){
@@ -23,12 +23,7 @@ int main(int argc, char *argv[])
 	}
 
 	scberr = scb_destroy(argv[1], &err);
-
-	if(scberr != SCB_OK){
-		scb_strerror(scberr, err, scberrormsg);
-		printf("%s", scberrormsg);
-		return(1);
-	}
+	SCB_SAMPLE_CHECK_ERROR(SCB_OK, scberr, err, 1);
 
 	return(0);
 }

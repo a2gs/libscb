@@ -130,9 +130,8 @@ scb_err_t scb_get(scb_t *ctx, void *element,  void *(*copyElement)(void *dest, c
 	scb_err_t ret = SCB_OK;
 
 	if(block == SCB_UNBLOCK){
-		if(sem_trywait(&(ctx->ctrl->full)) == -1){
+		if(sem_trywait(&(ctx->ctrl->full)) == -1)
 			return(SCB_BLOCKED);
-		}
 	}else{
 		if(sem_wait(&(ctx->ctrl->full)) == -1){
 			*err = errno;
@@ -146,7 +145,8 @@ scb_err_t scb_get(scb_t *ctx, void *element,  void *(*copyElement)(void *dest, c
 		return(SCB_SEMPH);
 	}
 
-	if(ctx->ctrl->qtd == 0) ret = SCB_EMPTY;
+	if(ctx->ctrl->qtd == 0)
+		ret = SCB_EMPTY;
 	else{
 		copyElement(element, ctx->data + (ctx->ctrl->tail * ctx->ctrl->dataElementSz));
 
@@ -166,9 +166,8 @@ scb_err_t scb_put(scb_t *ctx, void *element, void *(*copyElement)(void *dest, co
 	scb_err_t ret = SCB_OK;
 
 	if(block == SCB_UNBLOCK){
-		if(sem_trywait(&(ctx->ctrl->empty)) == -1){
+		if(sem_trywait(&(ctx->ctrl->empty)) == -1)
 			return(SCB_BLOCKED);
-		}
 	}else{
 		if(sem_wait(&(ctx->ctrl->empty)) == -1){
 			*err = errno;
@@ -182,7 +181,8 @@ scb_err_t scb_put(scb_t *ctx, void *element, void *(*copyElement)(void *dest, co
 		return(SCB_SEMPH);
 	}
 
-	if(ctx->ctrl->qtd == ctx->ctrl->dataTotal) ret = SCB_FULL;
+	if(ctx->ctrl->qtd == ctx->ctrl->dataTotal)
+		ret = SCB_FULL;
 	else{
 		copyElement(ctx->data + (ctx->ctrl->head * ctx->ctrl->dataElementSz), element);
 

@@ -10,6 +10,7 @@
 #include <stdio.h>
 
 #include "scb.h"
+#include "prodcons.h"
 
 int main(int argc, char *argv[])
 {
@@ -17,7 +18,6 @@ int main(int argc, char *argv[])
 	int semFull = 0;
 	int semEmpty = 0;
 	int semBuff = 0;
-	char scberrormsg[SCB_ERRORMSG_MAXSZ + 1] = {'\0'};
 	scb_ctrl_t inf;
 	scb_err_t scberr;
 
@@ -27,11 +27,7 @@ int main(int argc, char *argv[])
 	}
 
 	scberr = scb_getInfo(argv[1], &inf, &semFull, &semEmpty, &semBuff, &err);
-	if(scberr != SCB_OK){
-		scb_strerror(scberr, err, scberrormsg);
-		printf("%s", scberrormsg);
-		return(1);
-	}
+	SCB_SAMPLE_CHECK_ERROR(SCB_OK, scberr, err, 1);
 
 	printf("Circular buffer name: [%s]\n", argv[1]);
 	printf("Head................: [%u]\n", inf.head);
