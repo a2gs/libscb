@@ -37,6 +37,7 @@ scb_err_t scb_create(char *name, uint16_t totalElements, size_t sizeElements, sc
 	if(ftruncate(fdshmem, szshmem) == -1){
 		*err = errno;
 		shm_unlink(name);
+		close(fdshmem);
 		return(SCB_FTRUNC);
 	}
 
@@ -45,6 +46,7 @@ scb_err_t scb_create(char *name, uint16_t totalElements, size_t sizeElements, sc
 	if(shmem == MAP_FAILED){
 		*err = errno;
 		shm_unlink(name);
+		close(fdshmem);
 		return(SCB_MMAP);
 	}
 
