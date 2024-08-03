@@ -43,6 +43,7 @@ typedef struct _scb_iter_t{
 typedef enum{
 	SCB_OK = 0,
 	SCB_SHMEM,
+	SCB_EEXIST,
 	SCB_FTRUNC,
 	SCB_SEMPH,
 	SCB_MMAP,

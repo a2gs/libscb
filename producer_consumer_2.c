@@ -13,9 +13,15 @@
 #include <string.h>
 #include <errno.h>
 #include <signal.h>
+#include <time.h>
 #include <pthread.h>
 #include <sys/wait.h>
-#include <sys/wait.h>
+#include <sys/time.h>
+
+#include "scb.h" 
+
+#define TOTAL_ELEMENTS	(50)
+#define SIZE_ELEMENT		(50)
 
 unsigned int TOTAL_MSGS = 0;
 unsigned int TOTAL_THREADS = 0;
@@ -47,11 +53,57 @@ typedef struct
 	unsigned int idThread;
 }threadInfo_t;
 
+void * copyElement(void *dst, const void *src)
+{
+	return(memcpy(dst, src, SIZE_ELEMENT));
+}
+
 void * runThread(void *_info)
 {
+	int ret = 0;
+	unsigned int i = 0;
+	char msg[SIZE_ELEMENT + 1] = {0};
 	threadInfo_t *info = _info;
+	scb_t ctx = {0};
+	scb_err_t scberr = SCB_OK;
+	struct timeval tv;
+	struct tm ptm;
 
-	printf("%d %u %u\n", info->selfPID, info->idProc, info->idThread);
+	scberr = scb_create(NAMED_QUEUE, TOTAL_ELEMENTS, SIZE_ELEMENT, &ctx, &ret);
+	if(scberr == SCB_EEXIST){
+		scberr = scb_attach(&ctx, NAMED_QUEUE, &ret);
+
+		if(scberr != SCB_OK){
+			// TODO : report erro
+			pthread_exit(NULL);
+		}
+	}else if(scberr != SCB_OK){
+		// TODO : report erro
+		pthread_exit(NULL);
+	}
+
+	for(i = 0; ; ){
+		if(TOTAL_MSGS != 0){
+			if(i == TOTAL_MSGS) break;
+			i++;
+		}
+
+		gettimeofday(&tv, NULL);
+		localtime_r(&tv.tv_sec, &ptm);
+
+		snprintf(msg, SIZE_ELEMENT, "[%d %u %u]-[%02d/%02d/%04d %02d:%02d:%02d.%06ld]",
+		         info->selfPID, info->idProc, info->idThread, ptm.tm_mday, ptm.tm_mon + 1,
+		         ptm.tm_year + 1900, ptm.tm_hour, ptm.tm_min, ptm.tm_sec, tv.tv_usec);
+
+		scberr = scb_put(&ctx, msg, copyElement, SCB_UNBLOCK, &ret);
+		if(scberr != SCB_OK){
+			// TODO : report erro
+			pthread_exit(NULL);
+		}
+
+		usleep(DELAY);
+	}
+
 	pthread_exit(NULL);
 }
 

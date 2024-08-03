@@ -31,6 +31,8 @@ scb_err_t scb_create(char *name, uint16_t totalElements, size_t sizeElements, sc
 	fdshmem = shm_open(name, O_CREAT | O_EXCL | O_RDWR, S_IRUSR | S_IWUSR);
 	if(fdshmem == -1){
 		*err = errno;
+		if(errno == EEXIST)
+			return(SCB_EEXIST);
 		return(SCB_SHMEM);
 	}
 
