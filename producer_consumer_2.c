@@ -58,7 +58,7 @@ void * copyElement(void *dst, const void *src)
 	return(memcpy(dst, src, SIZE_ELEMENT));
 }
 
-void * runThread(void *_info)
+void * runProducerThread(void *_info)
 {
 	int ret = 0;
 	unsigned int i = 0;
@@ -69,6 +69,7 @@ void * runThread(void *_info)
 	struct timeval tv;
 	struct tm ptm;
 
+	// Creating or attaching SCB queue
 	scberr = scb_create(NAMED_QUEUE, TOTAL_ELEMENTS, SIZE_ELEMENT, &ctx, &ret);
 	if(scberr == SCB_EEXIST){
 		scberr = scb_attach(&ctx, NAMED_QUEUE, &ret);
@@ -82,6 +83,9 @@ void * runThread(void *_info)
 		pthread_exit(NULL);
 	}
 
+	// TODO: rand start here
+
+	// Populating
 	for(i = 0; ; ){
 		if(TOTAL_MSGS != 0){
 			if(i == TOTAL_MSGS) break;
@@ -107,6 +111,11 @@ void * runThread(void *_info)
 	pthread_exit(NULL);
 }
 
+void * runConsumerThread(void *_info)
+{
+	pthread_exit(NULL);
+}
+
 int runFork(unsigned int forkId, pid_t selfPID)
 {
 	unsigned int i = 0;
@@ -129,7 +138,8 @@ int runFork(unsigned int forkId, pid_t selfPID)
 		threadsInfo[i].idProc = forkId;
 		threadsInfo[i].idThread = i;
 
-		ptRet = pthread_create(&threads[i], NULL, runThread, (void *) &threadsInfo[i]);
+		if(MODE == 'P') ptRet = pthread_create(&threads[i], NULL, runProducerThread, (void *) &threadsInfo[i]);
+		else            ptRet = pthread_create(&threads[i], NULL, runConsumerThread, (void *) &threadsInfo[i]);
 		if(ptRet != 0){
 			printf("Create thread error: [%d] - [%s]\n", ptRet, strerror(ptRet));
 			return(1);
@@ -161,7 +171,7 @@ int main(int argc, char *argv[])
 		printf("\tNUM_FORKS\n");
 		printf("\tNUM_THREADS\n");
 		printf("\tNUM_MSGS - Qtd msgs sent/received (0 = inf. ^c to stop)\n");
-		printf("\tDELAY_BETWEEN_MSGS - millisec\n");
+		printf("\tDELAY_BETWEEN_MSGS - millisec (0 = none)\n");
 		printf("\tRND_START - rand millisec start\n");
 		return(1);
 	}
@@ -175,6 +185,13 @@ int main(int argc, char *argv[])
 	TOTAL_MSGS = atoi(argv[5]);
 	DELAY = atoi(argv[6]);
 	RND_START_DELAY = atoi(argv[7]);
+
+	if(((MODE != 'P') && (MODE != 'C')) ||
+	   (nforks == 0) || (TOTAL_THREADS == 0) ||
+	   ((RND_START_DELAY != 0) && (RND_START_DELAY != 0))){
+		printf("Parameter value erro.\n");
+		return(1);
+	}
 
 	for(i = 0; i < nforks; i++){
 		p = fork();
