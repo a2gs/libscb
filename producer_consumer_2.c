@@ -66,8 +66,8 @@ void * runProducerThread(void *_info)
 	threadInfo_t *info = _info;
 	scb_t ctx = {0};
 	scb_err_t scberr = SCB_OK;
-	struct timeval tv;
-	struct tm ptm;
+	struct timeval tv = {0};
+	struct tm ptm = {0};
 
 	// Creating or attaching SCB queue
 	scberr = scb_create(NAMED_QUEUE, TOTAL_ELEMENTS, SIZE_ELEMENT, &ctx, &ret);
@@ -113,6 +113,29 @@ void * runProducerThread(void *_info)
 
 void * runConsumerThread(void *_info)
 {
+	int ret = 0;
+	scb_t ctx;
+	scb_err_t scberr;
+	char msg[SIZE_ELEMENT + 1] = {0};
+
+	scberr = scb_attach(&ctx, NAMED_QUEUE, &ret);
+	if(scberr != SCB_OK){
+		// TODO : report erro
+		pthread_exit(NULL);
+	}
+
+	while(1){
+		memset(msg, 0, SIZE_ELEMENT);
+
+		scberr = scb_get(&ctx, msg, copyElement, SCB_BLOCK, &ret);
+		if(scberr != SCB_OK){
+			// TODO : report erro
+			pthread_exit(NULL);
+		}
+
+		usleep(DELAY);
+	}
+
 	pthread_exit(NULL);
 }
 
