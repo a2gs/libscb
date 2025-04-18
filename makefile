@@ -15,31 +15,36 @@ AR = ar
 RANLIB = ranlib
 CPPCHECK = cppcheck
 
-INCLUDEPATH = -I./
-LIBS = -lscb -lpthread -lrt
-LIBPATH = -L./
+SRCPATH=./src
+INCPATH=./inc
+BINPATH=./bin
+
+LIBCOMPPATH = -L$(BINPATH)
+INCCOMPPATH = -I$(INCPATH)
+
+LIBS = -lpthread -lrt
 
 all: clean lscb
 
 lscb:
 	@echo
 	@echo "=== libscb ================="
-	$(CC) -o scb.o -c scb.c -lpthread -lrt $(CFLAGS)
-	$(AR) rc libscb.a scb.o
-	$(RANLIB) libscb.a
-	-$(RM) scb.o
+	$(CC) -o $(BINPATH)/scb.o -c $(SRCPATH)/scb.c $(INCCOMPPATH) $(LIBS) $(CFLAGS)
+	$(AR) rc $(BINPATH)/libscb.a $(BINPATH)/scb.o
+	$(RANLIB) $(BINPATH)/libscb.a
+	-$(RM) $(BINPATH)/scb.o
 
 sample: lscb
 	@echo
 	@echo "=== Compiling =============="
-	$(CC) -o prod prod.c $(CFLAGS) $(INCLUDEPATH) $(LIBPATH) $(LIBS)
-	$(CC) -o cons cons.c $(CFLAGS) $(INCLUDEPATH) $(LIBPATH) $(LIBS)
-	$(CC) -o info info.c $(CFLAGS) $(INCLUDEPATH) $(LIBPATH) $(LIBS)
-	$(CC) -o destroy destroy.c $(CFLAGS) $(INCLUDEPATH) $(LIBPATH) $(LIBS)
-	$(CC) -o iterator iterator.c $(CFLAGS) $(INCLUDEPATH) $(LIBPATH) $(LIBS)
-	$(CC) -o producer_consumer_2 producer_consumer_2.c $(CFLAGS) $(INCLUDEPATH) $(LIBPATH) $(LIBS)
+	$(CC) -o $(BINPATH)/prod $(SRCPATH)/prod.c $(CFLAGS) $(INCCOMPPATH) $(LIBCOMPPATH) $(LIBS) -lscb
+	$(CC) -o $(BINPATH)/cons $(SRCPATH)/cons.c $(CFLAGS) $(INCCOMPPATH) $(LIBCOMPPATH) $(LIBS) -lscb
+	$(CC) -o $(BINPATH)/info $(SRCPATH)/info.c $(CFLAGS) $(INCCOMPPATH) $(LIBCOMPPATH) $(LIBS) -lscb
+	$(CC) -o $(BINPATH)/destroy $(SRCPATH)/destroy.c $(CFLAGS) $(INCCOMPPATH) $(LIBCOMPPATH) $(LIBS) -lscb
+	$(CC) -o $(BINPATH)/iterator $(SRCPATH)/iterator.c $(CFLAGS) $(INCCOMPPATH) $(LIBCOMPPATH) $(LIBS) -lscb
+	$(CC) -o $(BINPATH)/producer_consumer_2 $(SRCPATH)/producer_consumer_2.c $(CFLAGS) $(INCCOMPPATH) $(LIBCOMPPATH) $(LIBS) -lscb
 
 clean:
 	@echo
 	@echo "=== clean_data =============="
-	-$(RM) prod cons info destroy iterator producer_consumer_2 libscb.a *.o core
+	-$(RM) $(BINPATH)/*
