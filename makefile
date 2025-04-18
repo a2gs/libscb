@@ -28,7 +28,7 @@ all: clean lscb
 
 lscb:
 	@echo
-	@echo "=== libscb ================="
+	@echo "=== Compiling libscb ================="
 	$(CC) -o $(BINPATH)/scb.o -c $(SRCPATH)/scb.c $(INCCOMPPATH) $(LIBS) $(CFLAGS)
 	$(AR) rc $(BINPATH)/libscb.a $(BINPATH)/scb.o
 	$(RANLIB) $(BINPATH)/libscb.a
@@ -36,7 +36,7 @@ lscb:
 
 sample: lscb
 	@echo
-	@echo "=== Compiling =============="
+	@echo "=== Compiling sample =============="
 	$(CC) -o $(BINPATH)/prod $(SRCPATH)/prod.c $(CFLAGS) $(INCCOMPPATH) $(LIBCOMPPATH) $(LIBS) -lscb
 	$(CC) -o $(BINPATH)/cons $(SRCPATH)/cons.c $(CFLAGS) $(INCCOMPPATH) $(LIBCOMPPATH) $(LIBS) -lscb
 	$(CC) -o $(BINPATH)/info $(SRCPATH)/info.c $(CFLAGS) $(INCCOMPPATH) $(LIBCOMPPATH) $(LIBS) -lscb
